@@ -5,7 +5,7 @@ from flask import Flask
 from telegram import Update, MessageEntity
 from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextTypes
 
-# --- FLASK SERVER FOR RENDER HEALTH CHECK ---
+# --- FLASK SERVER FOR RENDER KEEP-ALIVE ---
 web_app = Flask(__name__)
 
 @web_app.route('/')
@@ -20,9 +20,9 @@ def keep_alive():
     t = Thread(target=run_web)
     t.daemon = True
     t.start()
-# --------------------------------------------
+# ------------------------------------------
 
-# YAHAN APNA NEW BOT TOKEN PASTE KAREN
+# Aapka Bot Token
 BOT_TOKEN = "8451986992:AAF-XGAqq3XrFlTtgT_1J6WhCGNtSuUxLEY"
 
 logging.basicConfig(
@@ -55,13 +55,12 @@ async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE
         print(f"Error sending message: {e}")
 
 if __name__ == '__main__':
-    # Start Keep-Alive Server
+    # Start Keep-Alive Web Server first
     keep_alive()
     
-    # Start Telegram Bot
+    # Start Telegram Bot with allowed updates for join requests
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(ChatJoinRequestHandler(handle_join_request))
 
     print("Bot start ho gaya hai...")
-    # Explicitly listen for chat_join_request updates
     app.run_polling(allowed_updates=["chat_join_request", "message"])
