@@ -23,7 +23,7 @@ def keep_alive():
 # ------------------------------------------
 
 # Aapka Bot Token
-BOT_TOKEN = "8451986992:AAF-XGAqq3XrFlTtgT_1J6WhCGNtSuUxLEY"
+BOT_TOKEN = "8451986992:AAGPq44dVUbhSq4Cv9zX2WDAaUsBlMxECbQ"
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
