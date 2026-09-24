@@ -1,8 +1,8 @@
 import logging
-from telegram import Update
+from telegram import Update, MessageEntity
 from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, ContextTypes
 
-BOT_TOKEN = "8451986992:AAF-XGAqq3XrFlTtgT_lJ6WhCGNtSuUxLEY"
+BOT_TOKEN = "8451986992:AAF-XGAqq3XrFlTtgT_1J6WhCGNtSuUxLEY"
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -13,21 +13,23 @@ async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE
     request = update.chat_join_request
     user_id = request.from_user.id
     
-    message_text = (
-        '👍<tg-emoji emoji-id="5368324170671202286">✅</tg-emoji>'
-        '<b>VIP CHANNEL ENTRY</b>'
-        '<tg-emoji emoji-id="5368324170671202286">✅</tg-emoji>👍\n\n'
-        'https://t.me/+aIdVyZX2GYthYmE1\n'
-        'https://t.me/+aIdVyZX2GYthYmE1\n'
-        'https://t.me/+aIdVyZX2GYthYmE1\n'
-        'https://t.me/+aIdVyZX2GYthYmE1'
-    )
+    # Text Content
+    text = "VIP CHANNEL ENTRY\n\nhttps://t.me/+aIdVyZX2GYthYmE1\nhttps://t.me/+aIdVyZX2GYthYmE1\nhttps://t.me/+aIdVyZX2GYthYmE1\nhttps://t.me/+aIdVyZX2GYthYmE1"
+    
+    # Custom Emoji ID: 5368324170671202286 (✅ Checkmark Premium Emoji)
+    emoji_id = "5368324170671202286"
+    
+    entities = [
+        MessageEntity(type=MessageEntity.CUSTOM_EMOJI, offset=0, length=2, custom_emoji_id=emoji_id),
+        MessageEntity(type=MessageEntity.BOLD, offset=2, length=17),
+        MessageEntity(type=MessageEntity.CUSTOM_EMOJI, offset=19, length=2, custom_emoji_id=emoji_id),
+    ]
 
     try:
         await context.bot.send_message(
             chat_id=user_id,
-            text=message_text,
-            parse_mode='HTML',
+            text=f"👍{text[:17]}👍\n\n{text[19:]}",
+            entities=entities,
             disable_web_page_preview=True
         )
         print(f"Message sent to {user_id}")
