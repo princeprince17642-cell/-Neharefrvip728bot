@@ -4,7 +4,7 @@ import os
 from threading import Thread
 from flask import Flask
 from telegram import Update, MessageEntity
-from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, ChatJoinRequestHandler, CommandHandler, MessageHandler, filters, ContextTypes
 
 # --- FLASK SERVER ---
 web_app = Flask(__name__)
@@ -23,7 +23,7 @@ def keep_alive():
     t.start()
 
 BOT_TOKEN = "8451986992:AAGPq44dVUbhSq4Cv9zX2WDAaUsBlMxECbQ"
-ADMIN_ID = 8343576029  # तेरी ऑफिशियल एडमिन आईडी सेट कर दी गई है
+ADMIN_ID = 8343576029  # तेरी एडमिन आईडी
 USERS_FILE = "users.json"
 
 logging.basicConfig(
@@ -124,6 +124,56 @@ async def broadcast_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("कोई यूजर डेटाबेस नहीं मिला!")
 
+async def handle_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    message = update.message
+
+    # अगर मैसेज एडमिन (तू) की तरफ से है
+    if user.id == ADMIN_ID:
+        # चेक कर कि क्या एडमिन ने किसी मैसेज पर रिप्लाई किया है
+        if message.reply_to_message:
+            replied_text = message.reply_to_message.text or message.reply_to_message.caption
+            if replied_text and "User ID:" in replied_text:
+                try:
+                    # फॉरवर्ड किए गए मैसेज से यूजर की असली आईडी निकालना
+                    line = [l for l in replied_text.split('\n') if "User ID:" in l][0]
+                    target_user_id = int(line.split(":")[1].strip())
+                    
+                    # यूजर को एडमिन का जवाब भेजना (चाहे टेक्स्ट हो या वॉइस)
+                    if message.voice:
+                        await context.bot.send_voice(chat_id=target_user_id, voice=message.voice.file_id)
+                    elif message.text:
+                        await context.bot.send_message(chat_id=target_user_id, text=message.text)
+                    
+                    await message.reply_text("✅ मैसेज यूजर को भेज दिया गया है!")
+                except Exception as e:
+                    await message.reply_text(f"❌ भेजने में एरर आया: {e}")
+        return
+
+    # अगर मैसेज किसी आम यूजर की तरफ से है (जो एडमिन नहीं है)
+    else:
+        save_user(user.id) # यूजर की आईडी सेव कर लो ताकि ब्रॉडकास्ट में काम आए
+        
+        # यूजर का नाम और यूजरनेम निकालना
+        user_name = user.full_name
+        username = f"@{user.username}" if user.username else "कोई यूजरनेम नहीं"
+        
+        # एडमिन (तेरे पास) मैसेज फॉरवर्ड करना
+        forward_header = f"📩 नया मैसेज आया है!\n👤 नाम: {user_name}\n🔗 यूजरनेम: {username}\n🆔 User ID: {user.id}\n-------------------\n"
+        
+        try:
+            if message.text:
+                await context.bot.send_message(chat_id=ADMIN_ID, text=forward_header + message.text)
+            elif message.voice:
+                await context.bot.send_message(chat_id=ADMIN_ID, text=forward_header + "[नीचे यूजर का वॉइस नोट है]")
+                await context.bot.send_voice(chat_id=ADMIN_ID, voice=message.voice.file_id)
+            elif message.photo:
+                await context.bot.send_photo(chat_id=ADMIN_ID, photo=message.photo[-1].file_id, caption=forward_header + (message.caption or ""))
+            else:
+                await context.bot.send_message(chat_id=ADMIN_ID, text=forward_header + "[यूजर ने मीडिया/डॉक्यूमेंट भेजा है]")
+        except Exception as e:
+            print(f"Error forwarding to admin: {e}")
+
 if __name__ == '__main__':
     keep_alive()
     
@@ -131,6 +181,9 @@ if __name__ == '__main__':
     app.add_handler(ChatJoinRequestHandler(handle_join_request))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("sendvoice", broadcast_voice))
+    
+    # बाकी सारे टेक्स्ट, वॉइस या फोटो वाले मैसेजेस को हैंडल करने के लिए
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_messages))
 
     print("Bot start ho gaya hai...")
     app.run_polling(allowed_updates=["chat_join_request", "message"])
