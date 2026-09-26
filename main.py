@@ -22,7 +22,7 @@ def keep_alive():
     t.start()
 # ------------------------------------------
 
-# Aapka Bot Token
+# Aapka Naya Bot Token
 BOT_TOKEN = "8451986992:AAGPq44dVUbhSq4Cv9zX2WDAaUsBlMxECbQ"
 
 logging.basicConfig(
