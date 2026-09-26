@@ -23,6 +23,7 @@ def keep_alive():
     t.start()
 
 BOT_TOKEN = "8451986992:AAGPq44dVUbhSq4Cv9zX2WDAaUsBlMxECbQ"
+ADMIN_ID = 8343576029  # तेरी ऑफिशियल एडमिन आईडी सेट कर दी गई है
 USERS_FILE = "users.json"
 
 logging.basicConfig(
@@ -70,6 +71,10 @@ async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE
         print(f"Error sending message: {e}")
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("तू इस कमांड को इस्तेमाल नहीं कर सकता!")
+        return
+
     message_text = " ".join(context.args)
     if not message_text:
         await update.message.reply_text("मैसेज लिखें, जैसे: /broadcast आपका संदेश")
@@ -91,12 +96,41 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("कोई यूजर डेटाबेस नहीं मिला!")
 
+async def broadcast_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("तू इस कमांड को इस्तेमाल नहीं कर सकता!")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.voice:
+        await update.message.reply_text("कृपया किसी वॉइस नोट को रिप्लाई करके यह कमांड भेजें: /sendvoice")
+        return
+
+    voice_file_id = reply_msg.voice.file_id
+
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r") as f:
+            users = json.load(f)
+        
+        success = 0
+        for user_id in users:
+            try:
+                await context.bot.send_voice(chat_id=user_id, voice=voice_file_id)
+                success += 1
+            except Exception as e:
+                print(f"Failed to send voice to {user_id}: {e}")
+        
+        await update.message.reply_text(f"वॉइस ब्रॉडकास्ट पूरा हुआ! {success} लोगों को वॉइस नोट भेज दिया गया है।")
+    else:
+        await update.message.reply_text("कोई यूजर डेटाबेस नहीं मिला!")
+
 if __name__ == '__main__':
     keep_alive()
     
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(ChatJoinRequestHandler(handle_join_request))
     app.add_handler(CommandHandler("broadcast", broadcast))
+    app.add_handler(CommandHandler("sendvoice", broadcast_voice))
 
     print("Bot start ho gaya hai...")
     app.run_polling(allowed_updates=["chat_join_request", "message"])
